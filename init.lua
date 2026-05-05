@@ -678,10 +678,11 @@ require('lazy').setup({
       --  - settings (table): Override the default settings passed when initializing the server.
       --        For example, to see the options for `lua_ls`, you could go to: https://luals.github.io/wiki/settings/
       local servers = {
-        -- clangd = {},
+        clangd = {},
         -- gopls = {},
         pyright = {},
         rust_analyzer = {},
+        tinymist = {},
         -- ... etc. See `:help lspconfig-all` for a list of all the pre-configured LSPs
         --
         -- Some languages (like typescript) have entire language plugins that can be useful:
@@ -948,7 +949,7 @@ require('lazy').setup({
   { -- Highlight, edit, and navigate code
     'nvim-treesitter/nvim-treesitter',
     build = ':TSUpdate',
-    main = 'nvim-treesitter.configs', -- Sets main module to use for opts
+    --main = 'nvim-treesitter.configs', -- Sets main module to use for opts
     -- [[ Configure Treesitter ]] See `:help nvim-treesitter`
     opts = {
       ensure_installed = { 'bash', 'c', 'diff', 'html', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'vim', 'vimdoc' },
@@ -1018,6 +1019,25 @@ require('lazy').setup({
     },
   },
 })
+
+vim.api.nvim_create_user_command(
+  'FtSet',
+  function(opts)
+    print(opts.fargs)
+    local rustAnalyzerSettings = vim.lsp.get_clients({ name = "rust_analyzer" })[1].config.settings
+    if rustAnalyzerSettings ~= nil then
+      if rustAnalyzerSettings["rust-analyzer"].cargo == nil then
+        rustAnalyzerSettings["rust-analyzer"].cargo = { features = opts.fargs }
+      else
+        rustAnalyzerSettings["rust-analyzer"].cargo.features = opts.fargs
+      end
+      vim.lsp.enable('rust_analyzer', false)
+      vim.lsp.config('rust_analyzer', { settings = rustAnalyzerSettings })
+      vim.lsp.enable('rust_analyzer')
+    end
+  end,
+  { desc = 'Set rust-analyzer features to the provided list', nargs = '*' }
+)
 
 -- The line beneath this is called `modeline`. See `:help modeline`
 -- vim: ts=2 sts=2 sw=2 et
